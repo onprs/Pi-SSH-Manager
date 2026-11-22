@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.1.0)"
+        required: false
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    name: Publish and Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run typecheck and tests
+        run: npm run check
+
+      - name: Extract changelog notes
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const tag = "${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}";
+            const version = tag.replace(/^v/, "");
+            const content = fs.readFileSync("CHANGELOG.md", "utf8");
+            const lines = content.split(/\r?\n/);
+            let capturing = false;
+            const out = [];
+            for (const line of lines) {
+              if (/^##\s+/.test(line)) {
+                if (capturing) break;
+                if (line.includes(version)) capturing = true;
+                continue;
+              }
+              if (capturing) out.push(line);
+            }
+            const notes = out.join("\n").trim() || `Release ${tag}`;
+            fs.writeFileSync("release-notes.md", notes + "\n", "utf8");
+          '
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TAG" --notes-file release-notes.md
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file release-notes.md
+          fi
+
+      - name: Publish to npm
+        if: ${{ env.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION 已存在于 npm，跳过重复发布"
+            exit 0
+          fi
+          npm publish --provenance --access public

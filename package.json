@@ -1,0 +1,54 @@
+{
+  "name": "pi-ssh-manager",
+  "version": "0.1.0",
+  "description": "SSH host query and OpenSSH configuration manager extension for Pi",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onprs/Pi-SSH-Manager.git"
+  },
+  "homepage": "https://github.com/onprs/Pi-SSH-Manager#readme",
+  "bugs": {
+    "url": "https://github.com/onprs/Pi-SSH-Manager/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "ssh",
+    "openssh",
+    "ssh-config"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "changelogPath": "./CHANGELOG.md"
+  },
+  "files": [
+    "src",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
+    "test": "node --experimental-strip-types --test",
+    "check": "npm run typecheck && npm test"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^1.6.0",
+    "@earendil-works/pi-coding-agent": "^1.6.0",
+    "@types/node": "^22.19.0",
+    "typebox": "^1.3.27",
+    "typescript": "^5.8.2"
+  }
+}
