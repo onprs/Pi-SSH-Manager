@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readSshConfig, resolveSshHost } from "../src/config-reader.ts";
-import { registerOnprsSSH } from "../src/index.ts";
+import { registerSshManager } from "../src/index.ts";
 
 describe("OpenSSH 静态配置读取与工具查询边界", () => {
   it("递归解析 Include、通配/否定 Host、隐藏危险指令并执行资源与敏感文件防护", async () => {
@@ -149,7 +149,7 @@ describe("OpenSSH 静态配置读取与工具查询边界", () => {
       assert.ok(!serializedSnapshot.includes("run-sensitive-command"), "公开快照不应包含远程命令原文");
 
       let tool: any;
-      registerOnprsSSH(
+      registerSshManager(
         {
           registerCommand() {},
           registerTool(definition: unknown) {
@@ -158,7 +158,7 @@ describe("OpenSSH 静态配置读取与工具查询边界", () => {
         } as unknown as ExtensionAPI,
         { homeDir: temporaryHome },
       );
-      assert.equal(tool?.name, "onprsSSH", "应注册 onprsSSH 工具");
+      assert.equal(tool?.name, "ssh_manager", "应注册 ssh_manager 工具");
 
       const listResult = await tool.execute("test-list", { action: "list" }, undefined, undefined);
       assert.equal(listResult.details.configPath, path.join(sshDirectory, "config"), "list 应报告配置路径");
@@ -230,7 +230,7 @@ describe("OpenSSH 静态配置读取与工具查询边界", () => {
       );
 
       let warningTool: any;
-      registerOnprsSSH(
+      registerSshManager(
         {
           registerCommand() {},
           registerTool(definition: unknown) {

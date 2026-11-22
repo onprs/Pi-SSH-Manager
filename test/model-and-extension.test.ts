@@ -5,12 +5,12 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { validateToolArguments } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import onprsSSH, {
+import sshManager, {
   getSshPaths,
   normalizeHost,
   normalizeOptions,
   quoteSshPath,
-  registerOnprsSSH,
+  registerSshManager,
   renderSshConfig,
   validateAlias,
 } from "../src/index.ts";
@@ -59,7 +59,7 @@ describe("数据模型规范化与配置渲染", () => {
     assert.ok(rendered.trimEnd().endsWith("Host *"));
 
     const paths = getSshPaths("/tmp/demo-home");
-    assert.equal(paths.directory, path.join(path.resolve("/tmp/demo-home"), ".ssh", "onprsSSH"));
+    assert.equal(paths.directory, path.join(path.resolve("/tmp/demo-home"), ".ssh", "pi-ssh-manager"));
   });
 });
 
@@ -87,15 +87,15 @@ describe("扩展工具与斜杠命令注册及交互行为", () => {
         },
       } as unknown as ExtensionAPI;
 
-      onprsSSH(mockPi);
-      assert.equal(registeredTool.name, "onprsSSH");
+      sshManager(mockPi);
+      assert.equal(registeredTool.name, "ssh_manager");
       assert.equal(typeof registeredCommand.handler, "function");
 
       // 在独立 homeDir 上验证参数校验、工具执行与斜杠命令
-      registerOnprsSSH(mockPi, { homeDir: home });
+      registerSshManager(mockPi, { homeDir: home });
       const validated = validateToolArguments(registeredTool, {
         id: "call-1",
-        name: "onprsSSH",
+        name: "ssh_manager",
         arguments: { action: "import", source, overwrite: true },
         type: "toolCall",
       });
@@ -103,7 +103,7 @@ describe("扩展工具与斜杠命令注册及交互行为", () => {
       assert.throws(() =>
         validateToolArguments(registeredTool, {
           id: "call-bad",
-          name: "onprsSSH",
+          name: "ssh_manager",
           arguments: { action: "invalid" },
           type: "toolCall",
         }),
@@ -111,6 +111,11 @@ describe("扩展工具与斜杠命令注册及交互行为", () => {
 
       const imported = await registeredTool.execute("imp", { action: "import", source });
       assert.deepEqual(imported.structuredContent.imported, ["ext-alpha"]);
+
+      const topCompletions = await registeredCommand.getArgumentCompletions("");
+      assert.deepEqual(topCompletions.map((item: { label: string }) => item.label), ["list", "get <别名>", "import <路径>"]);
+      const hostCompletions = await registeredCommand.getArgumentCompletions("get ext");
+      assert.equal(hostCompletions?.[0]?.value, "get ext-alpha");
 
       // 无 UI 模式执行命令应友好提示
       const notifications: Array<{ text: string; level: string }> = [];
@@ -123,7 +128,7 @@ describe("扩展工具与斜杠命令注册及交互行为", () => {
         },
       });
       assert.equal(notifications.at(-1)?.level, "error");
-      assert.ok(notifications.at(-1)?.text.includes("onprsSSH 工具"));
+      assert.ok(notifications.at(-1)?.text.includes("ssh_manager 工具"));
 
       // UI 模式下 list / get / import 与交互式菜单分支
       let editorText = "";

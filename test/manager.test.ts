@@ -6,7 +6,7 @@ import path from "node:path";
 import { describe, it, type TestContext } from "node:test";
 import { promisify } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { registerOnprsSSH } from "../src/index.ts";
+import { registerSshManager } from "../src/index.ts";
 import { SshManager } from "../src/manager.ts";
 
 const execute = promisify(execFile);
@@ -153,7 +153,7 @@ describe("SshManager 管理、导入、OpenSSH 兼容与失败恢复", () => {
       const overwritten = await manager.import(source, true);
       assert.equal(overwritten.imported.length, 2);
       assert.equal((await manager.get("alpha")).port, 2222);
-      assert.equal((await readFile(nativeConfig, "utf8")).split("# >>> onprsSSH >>>").length, 2, "重复写入不能重复添加 Include");
+      assert.equal((await readFile(nativeConfig, "utf8")).split("# >>> pi-ssh-manager >>>").length, 2, "重复写入不能重复添加 Include");
 
       await assert.rejects(() => manager.upsert({ host: "bad-host", hostname: "bad\nHost injected" }), /INVALID_/);
       await assert.rejects(() => manager.upsert({ host: "bad-host", hostname: "good.example", options: { Host: "injected" } }), /INVALID_OPTION/);
@@ -195,19 +195,19 @@ describe("SshManager 管理、导入、OpenSSH 兼容与失败恢复", () => {
 
       let tool: any;
       let command: any;
-      registerOnprsSSH(
+      registerSshManager(
         {
           registerTool(value: unknown) {
             tool = value;
           },
           registerCommand(name: string, value: unknown) {
-            assert.equal(name, "onprsSSH");
+            assert.equal(name, "ssh");
             command = value;
           },
         } as unknown as ExtensionAPI,
         { homeDir: home },
       );
-      assert.equal(tool.name, "onprsSSH");
+      assert.equal(tool.name, "ssh_manager");
       assert.equal(tool.executionMode, "sequential");
       assert.ok(tool.outputSchema, "应声明结构化工具结果以便 codemode 使用");
       assert.equal(typeof command.handler, "function");

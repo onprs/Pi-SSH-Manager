@@ -40,7 +40,7 @@ export interface SshPaths {
 export function getSshPaths(home: string): SshPaths {
   home = path.resolve(home);
   const sshDirectory = path.join(home, ".ssh");
-  const directory = path.join(sshDirectory, "onprsSSH");
+  const directory = path.join(sshDirectory, "pi-ssh-manager");
   return {
     home,
     sshDirectory,
@@ -127,7 +127,7 @@ export function quoteSshPath(value: string): string {
 }
 
 export function renderSshConfig(hosts: SshHostRecord[]): string {
-  const lines = ["# 由 onprsSSH 管理；请通过 Pi 的 onprsSSH 工具或 /onprsSSH 修改。", ""];
+  const lines = ["# 由 pi-ssh-manager 管理；请通过 Pi 的 ssh_manager 工具或 /ssh 修改。", ""];
   for (const host of [...hosts].sort((a, b) => a.alias.localeCompare(b.alias, "en"))) {
     if (host.description) lines.push(`# ${host.description}`);
     lines.push(`Host ${host.alias}`, `    HostName ${host.hostname}`, `    Port ${host.port}`);

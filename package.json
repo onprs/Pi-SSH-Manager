@@ -1,6 +1,6 @@
 {
   "name": "pi-ssh-manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SSH host query and OpenSSH configuration manager extension for Pi",
   "license": "MIT",
   "type": "module",

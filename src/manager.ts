@@ -10,8 +10,8 @@ import { getSshPaths, normalizeHost, quoteSshPath, renderSshConfig, validateAlia
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_STATE_BYTES = 16 * 1024 * 1024;
 const MAX_HOSTS = 500;
-const BEGIN = "# >>> onprsSSH >>>";
-const END = "# <<< onprsSSH <<<";
+const BEGIN = "# >>> pi-ssh-manager >>>";
+const END = "# <<< pi-ssh-manager <<<";
 
 type Asset = { content: Buffer; privateKey: boolean };
 export interface SshManagerOptions { homeDir?: string }
@@ -75,7 +75,7 @@ function integrateConfig(original: string, managedConfig: string): string {
   const start = text.indexOf(BEGIN);
   if (start >= 0) {
     const end = text.indexOf(END, start);
-    if (end < 0 || text.indexOf(BEGIN, start + BEGIN.length) >= 0) throw new Error("[INVALID_INCLUDE_BLOCK] ~/.ssh/config 中的 onprsSSH 配置标记不完整或重复。");
+    if (end < 0 || text.indexOf(BEGIN, start + BEGIN.length) >= 0) throw new Error("[INVALID_INCLUDE_BLOCK] ~/.ssh/config 中的 pi-ssh-manager 配置标记不完整或重复。");
     text = text.slice(0, start) + text.slice(end + END.length).replace(/^\r?\n/, "");
   }
   const block = `${BEGIN}\nInclude ${quoteSshPath(managedConfig)}\nHost *\n${END}\n`;
@@ -90,8 +90,8 @@ export class SshManager {
     const content = await readOptional(this.paths.state, MAX_STATE_BYTES, true);
     if (!content) return { version: 1, hosts: [] };
     let data: SshStore;
-    try { data = JSON.parse(content.toString("utf8")); } catch { throw new Error("[INVALID_STORE] onprsSSH 主机文件不是有效 JSON，请检查或从备份恢复。"); }
-    if (data?.version !== 1 || !Array.isArray(data.hosts) || data.hosts.length > MAX_HOSTS) throw new Error("[INVALID_STORE] onprsSSH 主机文件格式或版本无效。");
+    try { data = JSON.parse(content.toString("utf8")); } catch { throw new Error("[INVALID_STORE] pi-ssh-manager 主机文件不是有效 JSON，请检查或从备份恢复。"); }
+    if (data?.version !== 1 || !Array.isArray(data.hosts) || data.hosts.length > MAX_HOSTS) throw new Error("[INVALID_STORE] pi-ssh-manager 主机文件格式或版本无效。");
     const aliases = new Set<string>();
     const hosts = data.hosts.map((record) => {
       if (!record || typeof record !== "object") throw new Error("[INVALID_STORE] 主机记录无效。");
@@ -205,7 +205,7 @@ export class SshManager {
       signal?.throwIfAborted();
       const store = await this.load();
       const index = store.hosts.findIndex((host) => host.alias === alias);
-      if (index < 0) throw new Error(`[HOST_NOT_MANAGED] onprsSSH 没有管理该别名：${alias}`);
+      if (index < 0) throw new Error(`[HOST_NOT_MANAGED] pi-ssh-manager 没有管理该别名：${alias}`);
       store.hosts.splice(index, 1);
       const backupPath = await this.commit(store, new Map(), undefined, signal);
       return { action: "delete", sshAlias: alias, hostCount: store.hosts.length, backupPath };
